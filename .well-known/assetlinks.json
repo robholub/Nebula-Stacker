@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "app.vercel.nebula_stacker.twa",
-        "sha256_cert_fingerprints": ["92:9A:52:C8:C3:68:FF:56:B2:6B:EA:DE:B1:92:B9:E7:5E:C9:03:CE:BA:65:3F:13:B4:46:2C:58:36:90:92:F1"]
-      }
-    }]
