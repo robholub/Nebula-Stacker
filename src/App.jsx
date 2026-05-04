@@ -3,7 +3,7 @@ import {
   Upload, Play, Download, Trash2, Sliders, Layers, 
   Star, Info, Loader2, Zap, Sun, 
   Activity, Palette, CheckCircle2, XCircle, RotateCcw,
-  Image as ImageIcon, Crosshair, FileCode
+  Image as ImageIcon, Crosshair, FileCode, Eye
 } from 'lucide-react';
 
 /**
