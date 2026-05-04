@@ -17,14 +17,14 @@ async function parseFITS(arrayBuffer) {
   const header = {};
   
   // 1. Read Header Units (2880 bytes each)
-  while (offset < arrayBuffer.byteLength) {
+  let foundEnd = false;
+  while (offset < arrayBuffer.byteLength && !foundEnd) {
     const block = new TextDecoder().decode(new Uint8Array(arrayBuffer, offset, 2880));
     for (let i = 0; i < 36; i++) {
       const line = block.slice(i * 80, (i + 1) * 80);
       if (line.startsWith('END')) {
-        offset += 2880;
-        gotoData();
-        return;
+        foundEnd = true;
+        break;
       }
       const [key, valPart] = line.split('=');
       if (valPart) {
@@ -35,43 +35,41 @@ async function parseFITS(arrayBuffer) {
     offset += 2880;
   }
 
-  function gotoData() {
-    const bitpix = header['BITPIX'];
-    const width = header['NAXIS1'];
-    const height = header['NAXIS2'];
-    const size = width * height;
-    let data;
+  // Helper to extract binary data based on header
+  const bitpix = header['BITPIX'];
+  const width = header['NAXIS1'];
+  const height = header['NAXIS2'];
+  const size = width * height;
+  let data;
 
-    // Interpret binary data based on BITPIX
-    if (bitpix === 16) {
-      data = new Int16Array(size);
-      for (let i = 0; i < size; i++) data[i] = view.getInt16(offset + i * 2, false);
-    } else if (bitpix === 32) {
-      data = new Int32Array(size);
-      for (let i = 0; i < size; i++) data[i] = view.getInt32(offset + i * 4, false);
-    } else if (bitpix === -32) {
-      data = new Float32Array(size);
-      for (let i = 0; i < size; i++) data[i] = view.getFloat32(offset + i * 4, false);
-    } else {
-      data = new Uint8Array(arrayBuffer, offset, size);
-    }
-
-    // Normalize FITS data to 0-255 for our engine
-    let min = Infinity, max = -Infinity;
-    for (let i = 0; i < size; i++) {
-      if (data[i] < min) min = data[i];
-      if (data[i] > max) max = data[i];
-    }
-    
-    const normalized = new Uint8Array(size * 4);
-    for (let i = 0; i < size; i++) {
-      const val = ((data[i] - min) / (max - min)) * 255;
-      const idx = i * 4;
-      normalized[idx] = normalized[idx+1] = normalized[idx+2] = val;
-      normalized[idx+3] = 255;
-    }
-    header.pixelData = normalized;
+  if (bitpix === 16) {
+    data = new Int16Array(size);
+    for (let i = 0; i < size; i++) data[i] = view.getInt16(offset + i * 2, false);
+  } else if (bitpix === 32) {
+    data = new Int32Array(size);
+    for (let i = 0; i < size; i++) data[i] = view.getInt32(offset + i * 4, false);
+  } else if (bitpix === -32) {
+    data = new Float32Array(size);
+    for (let i = 0; i < size; i++) data[i] = view.getFloat32(offset + i * 4, false);
+  } else {
+    data = new Uint8Array(arrayBuffer, offset, size);
   }
+
+  // Normalize FITS data to 0-255 for our engine
+  let min = Infinity, max = -Infinity;
+  for (let i = 0; i < size; i++) {
+    if (data[i] < min) min = data[i];
+    if (data[i] > max) max = data[i];
+  }
+  
+  const normalized = new Uint8Array(size * 4);
+  for (let i = 0; i < size; i++) {
+    const val = ((data[i] - min) / (max - min)) * 255;
+    const idx = i * 4;
+    normalized[idx] = normalized[idx+1] = normalized[idx+2] = val;
+    normalized[idx+3] = 255;
+  }
+  header.pixelData = normalized;
 
   return header;
 }
